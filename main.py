@@ -1,3 +1,4 @@
+from ast import Str
 import pytesseract
 import cv2
 pytesseract.pytesseract.tesseract_cmd = "C:\Program Files (x86)\Tesseract-OCR\\tesseract.exe"
@@ -16,7 +17,7 @@ def desenhaContornos(contornos, imagem):
                 (x, y, lar, alt) = cv2.boundingRect(c)
                 cv2.rectangle(imagem, (x, y), (x + lar, y + alt), (0, 255, 0), 2)
                 # segmenta a placa da imagem
-                roi = imagem[y:y + alt, x:x + lar]
+                roi = imagem[(y + 14):y + (lar - 7), (x + 6) :x + (alt - 10)]
                 #cv2.imwrite("output/roi.png", roi)
                 return roi
 
@@ -27,8 +28,9 @@ def buscaRetanguloPlaca(source):
     cont = 0
     while video.isOpened():
         ret, frame = video.read()
-        if (cont % 3 == 0):
-            
+        if (cont % 1 == 0):
+            print (cont)
+            print (ret)
 
             if (ret == False):
                 break
@@ -37,7 +39,7 @@ def buscaRetanguloPlaca(source):
             area = frame[500:, 300:800]
 
             # area de localização 480p
-            # area = frame[350:, 220:500]
+            #area = frame[350:, 220:500]
 
             # escala de cinza
             img_result = cv2.cvtColor(area, cv2.COLOR_BGR2GRAY)
@@ -62,12 +64,17 @@ def buscaRetanguloPlaca(source):
 
             roi = desenhaContornos(contornos, area)                       
             roi_ocr = preProcessamentoRoi(roi)
-            placa = reconhecimentoOCR(roi_ocr)
-            cv2.putText(area, placa, (100,200), cv2.FONT_HERSHEY_SCRIPT_COMPLEX, 1, (0,255,0), cv2.LINE_4)
-            cv2.putText(area, str(cont), (200,200), cv2.FONT_HERSHEY_SCRIPT_COMPLEX, 1, (0,255,0), cv2.LINE_4)
-            cv2.imshow('RES', area)            
-            if cv2.waitKey(1) & 0xff == ord('q'):            
-                break
+
+            if roi_ocr is None:
+             print("roi_ocr is none")             
+            else:
+                print("else")
+                placa = reconhecimentoOCR(roi_ocr)
+                cv2.putText(area, placa, (50,50), cv2.FONT_HERSHEY_SCRIPT_COMPLEX, 1, (0,255,0), cv2.LINE_4)
+                cv2.putText(area, str(cont), (200,200), cv2.FONT_HERSHEY_SCRIPT_COMPLEX, 1, (0,255,0), cv2.LINE_4)
+                cv2.imshow('RES', area)            
+                if cv2.waitKey(1) & 0xff == ord('q'):            
+                    break
         cont = cont + 1        
     video.release()    
     cv2.destroyAllWindows()
@@ -75,12 +82,19 @@ def buscaRetanguloPlaca(source):
 
 def preProcessamentoRoi(roi):
     #img_roi = cv2.imread("output/roi.png")
+    img_roi = []
     img_roi = roi
     # cv2.imshow("ENTRADA", img_roi)
     if img_roi is None:
+        print("none preProcessamentoRoi")
         return
-
+    if len(img_roi) <= 1:
+        print("not img_roi")
+        return
+        
     # redmensiona a imagem da placa em 4x
+    print (len(img_roi))
+    print(img_roi)
     img = cv2.resize(img_roi, None, fx=4, fy=4, interpolation=cv2.INTER_CUBIC)
 
     # Converte para escala de cinza
@@ -105,6 +119,7 @@ def reconhecimentoOCR(roi_ocr):
     img_roi_ocr = roi_ocr
     #img_roi_ocr = cv2.imread("output/roi-ocr.png")
     if img_roi_ocr is None:
+        print("none OCR")
         return
 
     config = r'-c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 --psm 6'
@@ -115,10 +130,7 @@ def reconhecimentoOCR(roi_ocr):
 
 
 if __name__ == "__main__":
-    source = "resources/video720p.mkv"
+    source = "resources/uefs1-720p.mp4"
 
     buscaRetanguloPlaca(source)
 
-    #preProcessamentoRoi()
-
-    #reconhecimentoOCR()
